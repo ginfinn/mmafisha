@@ -4,7 +4,7 @@ package com.realityflex.mmafisha.config.jwt;
 import com.realityflex.mmafisha.entity.Role;
 import com.realityflex.mmafisha.entity.Member;
 import com.realityflex.mmafisha.repository.RoleRepository;
-import com.realityflex.mmafisha.repository.UserRepository;
+import com.realityflex.mmafisha.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     @Autowired
-    private UserRepository userEntityRepository;
+    private MemberRepository userEntityRepository;
     @Autowired
     private RoleRepository roleEntityRepository;
     @Autowired

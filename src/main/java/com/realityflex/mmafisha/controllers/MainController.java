@@ -6,6 +6,7 @@ import com.realityflex.mmafisha.dto.dtofordate.Date;
 import com.realityflex.mmafisha.dto.dtopreview.Preview;
 import com.realityflex.mmafisha.dto.iteminfodto.ItemInfo;
 import com.realityflex.mmafisha.dto.putSpheredto.PutSphere;
+import com.realityflex.mmafisha.dto.putSpheredto.PutSphereAndSubscriptionForUser;
 import com.realityflex.mmafisha.entity.*;
 import com.realityflex.mmafisha.repository.*;
 import com.realityflex.mmafisha.service.RestTemplateGetJson;
@@ -14,11 +15,9 @@ import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import javax.transaction.Transactional;
 import javax.validation.Valid;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,20 +33,27 @@ public class MainController {
     private final RestTemplateGetJson restTemplateGetJson;
     private final UniqueAuditoreRepository uniqueAuditoreRepository;
     private final UniqueSphereRepository uniqueSphereRepository;
+    private final MemberRepository memberRepository;
+    private final SubscriptionsRepository subscriptionsRepository;
     @Autowired
     private UserService userService;
     @Autowired
     private JwtProvider jwtProvider;
 
     @PostMapping("/register")
-    public AuthRespons registerUser(@RequestBody @Valid RegistrationRequest registrationRequest) {
+    public Object registerUser(@RequestBody @Valid RegistrationRequest registrationRequest) {
         Member u = new Member();
         u.setPassword(registrationRequest.getPassword());
         u.setMemberName(registrationRequest.getLogin());
-        userService.saveUser(u);
-        Member memberEntity = userService.findByLoginAndPassword(registrationRequest.getLogin(), registrationRequest.getPassword());
-        String token = jwtProvider.generateToken(memberEntity.getMemberName());
-        return new AuthRespons(token);
+        if (memberRepository.existsByMemberName(registrationRequest.getLogin())) {
+            return "такой пользователь уже существует";
+        } else {
+
+            userService.saveUser(u);
+            Member memberEntity = userService.findByLoginAndPassword(registrationRequest.getLogin(), registrationRequest.getPassword());
+            String token = jwtProvider.generateToken(memberEntity.getMemberName());
+            return new AuthRespons(token);
+        }
     }
 
     @PostMapping("/auth")
@@ -57,7 +63,7 @@ public class MainController {
         return new AuthRespons(token);
     }
 
-    @GetMapping("/user/a")
+    @GetMapping("/a")
     public void getJson() {
         String page = "";
 
@@ -109,7 +115,7 @@ public class MainController {
                         .districts(districts)
                         .spheres(spheres)
                         .phone(afisha.getFoundation().getPhone())
-                        .foundationTitle(afisha.getFoundation().getTitle()).build());
+                        .foundationTitle(afisha.getFoundation().getTitle()).id(afisha.getId()).build());
 
 
             }
@@ -118,7 +124,7 @@ public class MainController {
 
     }
 
-    @GetMapping("/user/preview")
+    @GetMapping("/preview")
     public List<Preview> putPreview(int page, int size) {
 
         Pageable secondPageWithFiveElements = PageRequest.of(page, size);
@@ -135,7 +141,7 @@ public class MainController {
                 previewForList.setTitle(preview.getTitle());
                 previewForList.setDate_from_timestamp(preview.getDateFromTimestamp());
                 previewForList.setFree(preview.getFree());
-                previewForList.setIdItem(preview.getIdItem());
+                previewForList.setIdItem(preview.getId());
                 for (val sphere : preview.getSpheres()) {
                     spheres.add(sphere.getTitle());
                 }
@@ -149,7 +155,7 @@ public class MainController {
 
     }
 
-    @GetMapping("/user/findByDate")
+    @GetMapping("/findByDate")
     public List<Date> findByDate(int page, int size, String date) {
         List<Date> dates = new ArrayList<>();
         Pageable secondPageWithFiveElements = PageRequest.of(page, size);
@@ -159,7 +165,7 @@ public class MainController {
             Date dateForList = new Date();
             dateForList.setDate(item.getDateFrom());
             dateForList.setFree(item.getFree());
-            dateForList.setIdItem(item.getIdItem());
+            dateForList.setIdItem(item.getId());
             dateForList.setTitle(item.getTitle());
             dateForList.setDate_from_timestamp(item.getDateFromTimestamp());
             for (val sphere : item.getSpheres()) {
@@ -173,11 +179,11 @@ public class MainController {
 
     }
 
-    @GetMapping("/user/putIntem")
+    @GetMapping("/putItem")
     public ItemInfo putItem(int id) {
         ItemInfo itemInfo = new ItemInfo();
-        val item = itemRepository.findItemByIdItem(id);
-        itemInfo.setJpgUrl(item.getUlrImage());
+        val item = itemRepository.findItemById(id);
+        itemInfo.setJpgUrl("https://www.mos.ru" + item.getUlrImage());
         itemInfo.setDate_from_timestamp(item.getDateFromTimestamp());
         itemInfo.setDate_from(item.getDateFrom());
         itemInfo.setText(item.getText());
@@ -186,23 +192,31 @@ public class MainController {
         itemInfo.setAddress(address);
         itemInfo.setDate_to(item.getDateTo());
         itemInfo.setDate_to_timestamp(item.getDateToTimestamp());
+        itemInfo.setPhone(item.getPhone());
         return itemInfo;
     }
 
-    @GetMapping("/user/putSphere")
+    @GetMapping("/putSphere")
     public PutSphere putSphere() {
 
         Set<String> title = new HashSet<>();
         Set<String> auditoriesForResult = new HashSet<>();
         PutSphere putSphere = new PutSphere();
 
-        val spheres = uniqueSphereRepository.findAll();
-        val auditories = uniqueAuditoreRepository.findAll();
+        val spheres = sphereRepository.findAll();
+        val auditories = auditorieRepository.findAll();
         for (val sphere : spheres) {
-            title.add(sphere.getSphere());
+            title.add(sphere.getTitle());
+        }
+        for (val z : title) {
+            uniqueSphereRepository.save(UniqueSphere.builder().sphere(z).build());
         }
         for (val auditorie : auditories) {
-            auditoriesForResult.add(auditorie.getAuditorie());
+            auditoriesForResult.add(auditorie.getTitle());
+
+        }
+        for (val a : auditoriesForResult) {
+            uniqueAuditoreRepository.save(UniqueAuditore.builder().auditorie(a).build());
         }
 
         putSphere.setAuditories(auditoriesForResult);
@@ -210,5 +224,70 @@ public class MainController {
 
         return putSphere;
     }
+
+    @GetMapping("/user/putSphere")
+    public PutSphereAndSubscriptionForUser putSphereAndSubscriptionForUser(@RequestHeader("Authorization") String token) {
+        String memberName = decoder(token);
+        List<String> spheresForResult = new ArrayList<>();
+        List<String> auditoriesForResult = new ArrayList<>();
+        List<String> subscriptionsForResult = new ArrayList<>();
+        PutSphereAndSubscriptionForUser putSphereAndSubscriptionForUser = new PutSphereAndSubscriptionForUser();
+        val spheres = uniqueSphereRepository.findAll();
+        val auditories = uniqueSphereRepository.findAll();
+        val subscriptions = subscriptionsRepository.findAllByMemberId(memberRepository.findByMemberName(memberName).getMemberId());
+        for (val sphere : spheres) {
+            spheresForResult.add(sphere.getSphere());
+        }
+        for (val auditore : auditories) {
+            auditoriesForResult.add(auditore.getSphere());
+        }
+        for (val subscription : subscriptions) {
+            subscriptionsForResult.add(subscription.getSphere());
+        }
+        putSphereAndSubscriptionForUser.setSubscription(subscriptionsForResult);
+        putSphereAndSubscriptionForUser.setAuditories(auditoriesForResult);
+        putSphereAndSubscriptionForUser.setSphere(spheresForResult);
+        return putSphereAndSubscriptionForUser;
+
+    }
+
+    @Transactional
+    @PostMapping("/user/userSubscription")
+    public void userSubscription(@RequestHeader("Authorization") String token, @RequestParam String sphere) {
+        String memberName = decoder(token);
+
+        val member = memberRepository.findMemberByMemberName(memberName);
+
+        if (subscriptionsRepository.existsBySphereAndMemberId(sphere, member.getMemberId())) {
+            subscriptionsRepository.deleteBySphere(sphere);
+        } else {
+            val subscriptions2 = Subscriptions.builder().sphere(sphere).memberId(member.getMemberId()).build();
+            member.getSubscriptions().add(subscriptions2);
+            memberRepository.save(member);
+        }
+
+
+    }
+
+    public String decoder(String token) {
+        Base64.Decoder decoder = Base64.getDecoder();
+        String[] chunks;
+        chunks = token.split("Bearer ");
+        String a = chunks[1];
+        String[] chunks2 = a.split("\\.");
+        String[] v;
+        String payload = new String(decoder.decode(chunks2[1]));
+        String[] c = payload.split(":");
+        v = c[1].split(",");
+        String memberName = v[0];
+        memberName = memberName.replace("\"", "");
+        return memberName;
+
+    }
+
 }
+
+
+
+
 

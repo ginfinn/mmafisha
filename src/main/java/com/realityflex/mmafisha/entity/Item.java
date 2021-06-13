@@ -16,9 +16,8 @@ import java.util.List;
 @Builder
 public class Item {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
 
-    Integer idItem;
+    Integer id;
     @Column(nullable = false, length = 9096)
     String title;
     @Column(nullable = false, length = 9096)

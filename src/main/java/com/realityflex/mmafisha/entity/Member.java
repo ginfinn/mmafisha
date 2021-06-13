@@ -18,10 +18,10 @@ public class Member {
     Integer memberId;
     String memberName;
     String password;
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "role_id")
     Role role;
-    @OneToMany
-    @JoinColumn(name = "member_id")
+    @OneToMany(mappedBy = "memberId",cascade = CascadeType.ALL)
+
     List<Subscriptions> subscriptions;
 }

@@ -12,6 +12,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class MyItem {
+    Integer id;
     String title;
     String text;
     String date_from;

@@ -14,8 +14,8 @@ import java.util.List;
 public interface ItemRepository extends PagingAndSortingRepository<Item, Integer> {
     @Query(value="SELECT * FROM item LIMIT 10", nativeQuery=true)
     List<Item> getFuckingTop();
-    Item findAllByIdItem(int id);
+    Item findAllById(int id);
     List<Item> findAllByAgeIsNotNull(Pageable pageable);
     List<Item> findAllByDateFrom(String Data,Pageable pageable);
-    Item findItemByIdItem(int id);
+    Item findItemById(int id);
 }
