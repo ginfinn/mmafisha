@@ -2,7 +2,9 @@ package com.realityflex.mmafisha.controllers;
 
 import com.realityflex.mmafisha.config.jwt.JwtProvider;
 import com.realityflex.mmafisha.config.jwt.UserService;
+import com.realityflex.mmafisha.dto.dotforuserupdate.UserUpdate;
 import com.realityflex.mmafisha.dto.dtofordate.Date;
+import com.realityflex.mmafisha.dto.dtoforsetpost.Setpost;
 import com.realityflex.mmafisha.dto.dtopreview.Preview;
 import com.realityflex.mmafisha.dto.iteminfodto.ItemInfo;
 import com.realityflex.mmafisha.dto.putSpheredto.PutSphere;
@@ -35,6 +37,7 @@ public class MainController {
     private final UniqueSphereRepository uniqueSphereRepository;
     private final MemberRepository memberRepository;
     private final SubscriptionsRepository subscriptionsRepository;
+    private final PostRepository postRepository;
     @Autowired
     private UserService userService;
     @Autowired
@@ -203,6 +206,31 @@ public class MainController {
         Set<String> auditoriesForResult = new HashSet<>();
         PutSphere putSphere = new PutSphere();
 
+        val spheres = uniqueSphereRepository.findAll();
+        val auditories = uniqueAuditoreRepository.findAll();
+        for (val sphere : spheres) {
+            title.add(sphere.getSphere());
+        }
+
+        for (val auditorie : auditories) {
+            auditoriesForResult.add(auditorie.getAuditorie());
+
+        }
+
+
+        putSphere.setAuditories(auditoriesForResult);
+        putSphere.setTitles(title);
+
+        return putSphere;
+    }
+
+    @GetMapping("/onetime/putSphere")
+    public PutSphere Sphere() {
+
+        Set<String> title = new HashSet<>();
+        Set<String> auditoriesForResult = new HashSet<>();
+        PutSphere putSphere = new PutSphere();
+
         val spheres = sphereRepository.findAll();
         val auditories = auditorieRepository.findAll();
         for (val sphere : spheres) {
@@ -233,13 +261,13 @@ public class MainController {
         List<String> subscriptionsForResult = new ArrayList<>();
         PutSphereAndSubscriptionForUser putSphereAndSubscriptionForUser = new PutSphereAndSubscriptionForUser();
         val spheres = uniqueSphereRepository.findAll();
-        val auditories = uniqueSphereRepository.findAll();
+        val auditories = uniqueAuditoreRepository.findAll();
         val subscriptions = subscriptionsRepository.findAllByMemberId(memberRepository.findByMemberName(memberName).getMemberId());
         for (val sphere : spheres) {
             spheresForResult.add(sphere.getSphere());
         }
         for (val auditore : auditories) {
-            auditoriesForResult.add(auditore.getSphere());
+            auditoriesForResult.add(auditore.getAuditorie());
         }
         for (val subscription : subscriptions) {
             subscriptionsForResult.add(subscription.getSphere());
@@ -247,6 +275,7 @@ public class MainController {
         putSphereAndSubscriptionForUser.setSubscription(subscriptionsForResult);
         putSphereAndSubscriptionForUser.setAuditories(auditoriesForResult);
         putSphereAndSubscriptionForUser.setSphere(spheresForResult);
+        putSphereAndSubscriptionForUser.setUserName(memberName);
         return putSphereAndSubscriptionForUser;
 
     }
@@ -267,6 +296,73 @@ public class MainController {
         }
 
 
+    }
+
+    @PostMapping("/user/userUpdate")
+    public void userUpdate(@RequestHeader("Authorization") String token, @RequestBody UserUpdate userUpdate) {
+        String memberName = decoder(token);
+        val member = memberRepository.findByMemberName(memberName);
+        member.setAvatarUrl(userUpdate.getAvatarUrl());
+        member.setText(userUpdate.getText());
+        member.setName(userUpdate.getName());
+        memberRepository.save(member);
+
+    }
+
+    @PostMapping("/user/setPost")
+    public void setPost(@RequestHeader("Authorization") String token, @RequestBody Setpost setpost) {
+        String memberName = decoder(token);
+        val member = memberRepository.findByMemberName(memberName);
+        val postsForResult = new Post();
+        postsForResult.setName(member.getName());
+        LinksUrl linksUrl = new LinksUrl();
+        List<Post> posts = new ArrayList<>();
+        IdItemForPost idItemForPost1 = new IdItemForPost();
+        List<IdItemForPost> idItemForPosts = new ArrayList<>();
+        List<LinksUrl> linksUrls = new ArrayList<>();
+
+        for (val itemId : setpost.getItemId()) {
+            for (val jpgUrl : setpost.getJpgUrl()) {
+                linksUrl.setJpgUrl(jpgUrl);
+                linksUrls.add(linksUrl);
+                idItemForPost1.setItemId(itemId);
+                idItemForPosts.add(idItemForPost1);
+
+            }
+        }
+
+
+        postsForResult.setText(setpost.getText());
+        postsForResult.setTitle(setpost.getTitle());
+        postsForResult.setIdItemForPosts(idItemForPosts);
+        postsForResult.setLinksUrl(linksUrls);
+        posts.add(postsForResult);
+        member.setPosts(posts);
+        memberRepository.save(member);
+
+
+    }
+
+    @GetMapping("/user/getUser")
+    public Member getUser(@RequestHeader("Authorization") String token) {
+        String memberName = decoder(token);
+        return memberRepository.findByMemberName(memberName);
+    }
+    @PostMapping("/user/addComent")
+    public void  addComent(@RequestHeader("Authorization") String token,@RequestBody String message,@RequestParam Integer postId){
+        String memberName = decoder(token);
+        val member =memberRepository.findByMemberName(memberName);
+        val post = postRepository.findByPostId(postId);
+        Coment coment = new Coment();
+        coment.setMessage(message);
+        coment.setName(member.getName());
+        List<Coment> coments =new ArrayList<>();
+        coments.add(coment);
+        post.setComents(coments);
+        List<Post> posts = new ArrayList<>();
+        posts.add(post);
+        member.setPosts(posts);
+        memberRepository.save(member);
     }
 
     public String decoder(String token) {

@@ -6,18 +6,15 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-
-@Getter
 @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Builder
-public class Sphere {
+public class LinksUrl {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    Integer id;
-    String title;
-    Integer idItem;
-
+    Integer linkId;
+    String jpgUrl;
 }

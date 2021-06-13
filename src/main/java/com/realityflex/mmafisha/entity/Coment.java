@@ -6,18 +6,16 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-
-@Getter
 @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Builder
-public class Sphere {
+public class Coment {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     Integer id;
-    String title;
-    Integer idItem;
-
+    String message;
+    String name;
 }

@@ -18,4 +18,5 @@ public interface ItemRepository extends PagingAndSortingRepository<Item, Integer
     List<Item> findAllByAgeIsNotNull(Pageable pageable);
     List<Item> findAllByDateFrom(String Data,Pageable pageable);
     Item findItemById(int id);
+
 }
