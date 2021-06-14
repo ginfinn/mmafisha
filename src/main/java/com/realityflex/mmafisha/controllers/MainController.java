@@ -4,7 +4,9 @@ import com.realityflex.mmafisha.config.jwt.JwtProvider;
 import com.realityflex.mmafisha.config.jwt.UserService;
 import com.realityflex.mmafisha.dto.dotforuserupdate.UserUpdate;
 import com.realityflex.mmafisha.dto.dtofordate.Date;
-import com.realityflex.mmafisha.dto.dtoforsetpost.Setpost;
+import com.realityflex.mmafisha.dto.dtoforsetpost.SetPost;
+import com.realityflex.mmafisha.dto.dtogetpost.CommentDto;
+import com.realityflex.mmafisha.dto.dtogetpost.GetPost;
 import com.realityflex.mmafisha.dto.dtopreview.Preview;
 import com.realityflex.mmafisha.dto.iteminfodto.ItemInfo;
 import com.realityflex.mmafisha.dto.putSpheredto.PutSphere;
@@ -14,7 +16,6 @@ import com.realityflex.mmafisha.repository.*;
 import com.realityflex.mmafisha.service.RestTemplateGetJson;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
@@ -38,10 +39,10 @@ public class MainController {
     private final MemberRepository memberRepository;
     private final SubscriptionsRepository subscriptionsRepository;
     private final PostRepository postRepository;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private JwtProvider jwtProvider;
+
+    private final UserService userService;
+
+    private final JwtProvider jwtProvider;
 
     @PostMapping("/register")
     public Object registerUser(@RequestBody @Valid RegistrationRequest registrationRequest) {
@@ -55,18 +56,18 @@ public class MainController {
             userService.saveUser(u);
             Member memberEntity = userService.findByLoginAndPassword(registrationRequest.getLogin(), registrationRequest.getPassword());
             String token = jwtProvider.generateToken(memberEntity.getMemberName());
-            return new AuthRespons(token);
+            return new AuthResponse(token);
         }
     }
 
     @PostMapping("/auth")
-    public AuthRespons auth(@RequestBody AuthRequest request) {
+    public AuthResponse auth(@RequestBody AuthRequest request) {
         Member memberEntity = userService.findByLoginAndPassword(request.getLogin(), request.getPassword());
         String token = jwtProvider.generateToken(memberEntity.getMemberName());
-        return new AuthRespons(token);
+        return new AuthResponse(token);
     }
 
-    @GetMapping("/a")
+    @GetMapping("/fillDb")
     public void getJson() {
         String page = "";
 
@@ -76,49 +77,49 @@ public class MainController {
         val pageCount = spliterator[1];
         for (int i = 1; i < Integer.parseInt(pageCount); i++) {
             val json = restTemplateGetJson.getJson(Integer.toString(i));
-            for (val afisha : json.getItems()) {
+            for (val poster : json.getItems()) {
                 ArrayList<Auditorie> auditories = new ArrayList<>();
                 ArrayList<District> districts = new ArrayList<>();
                 ArrayList<Sphere> spheres = new ArrayList<>();
                 ArrayList<Spot> spots = new ArrayList<>();
-                for (val spot : afisha.getSpots()) {
+                for (val spot : poster.getSpots()) {
                     Spot spotForList = spotRepository.save(Spot.builder().address(spot.getAddress())
                             .foundationId(spot.getFoundation_id())
                             .lat(spot.getLat())
                             .lon(spot.getLon()).build());
                     spots.add(spotForList);
-                    for (val sphere : afisha.getSpheres()) {
+                    for (val sphere : poster.getSpheres()) {
                         Sphere sphereForList = sphereRepository.save(Sphere.builder().title(sphere.getTitle()).build());
                         spheres.add(sphereForList);
                     }
-                    for (val district : afisha.getDistricts()) {
+                    for (val district : poster.getDistricts()) {
                         District districtForList = districtRepository.save(District.builder().districtId(district.getId()).build());
                         districts.add(districtForList);
                     }
-                    for (val auditorie : afisha.getAuditories()) {
+                    for (val auditorie : poster.getAuditories()) {
                         Auditorie auditorieForList = auditorieRepository.save(Auditorie.builder().title(auditorie.getTitle()).build());
                         auditories.add(auditorieForList);
                     }
 
                 }
-                val spliterator1 = afisha.getDate_from().split(" ");
-                val spliterator2 = afisha.getDate_from().split(" ");
-                itemRepository.save(Item.builder().age(afisha.getRestriction().getAge())
+                val spliterator1 = poster.getDate_from().split(" ");
+                val spliterator2 = poster.getDate_from().split(" ");
+                itemRepository.save(Item.builder().age(poster.getRestriction().getAge())
                         .dateFrom(spliterator1[0])
                         .dateTo(spliterator2[0])
-                        .dateFromTimestamp(afisha.getDate_from_timestamp())
-                        .dateToTimestamp(afisha.getDate_to_timestamp())
-                        .free(afisha.getFree())
-                        .status(afisha.getStatus())
-                        .text(afisha.getText())
-                        .title(afisha.getTitle())
-                        .ulrImage(afisha.getImage().getSmall().getSrc())
+                        .dateFromTimestamp(poster.getDate_from_timestamp())
+                        .dateToTimestamp(poster.getDate_to_timestamp())
+                        .free(poster.getFree())
+                        .status(poster.getStatus())
+                        .text(poster.getText())
+                        .title(poster.getTitle())
+                        .ulrImage(poster.getImage().getSmall().getSrc())
                         .spots(spots)
                         .auditories(auditories)
                         .districts(districts)
                         .spheres(spheres)
-                        .phone(afisha.getFoundation().getPhone())
-                        .foundationTitle(afisha.getFoundation().getTitle()).id(afisha.getId()).build());
+                        .phone(poster.getFoundation().getPhone())
+                        .foundationTitle(poster.getFoundation().getTitle()).id(poster.getId()).build());
 
 
             }
@@ -133,30 +134,12 @@ public class MainController {
         Pageable secondPageWithFiveElements = PageRequest.of(page, size);
         val pagePreview = itemRepository.findAllByAgeIsNotNull(secondPageWithFiveElements);
         List<Preview> previews = new ArrayList<>();
-        for (val preview : pagePreview) {
-            for (val spot : preview.getSpots()) {
-                List<String> spheres = new ArrayList<>();
-                Preview previewForList = new Preview();
-                previewForList.setAddress(spot.getAddress());
-                previewForList.setDate(preview.getDateFrom());
-                previewForList.setLat(spot.getLat());
-                previewForList.setLon(spot.getLon());
-                previewForList.setTitle(preview.getTitle());
-                previewForList.setDate_from_timestamp(preview.getDateFromTimestamp());
-                previewForList.setFree(preview.getFree());
-                previewForList.setIdItem(preview.getId());
-                for (val sphere : preview.getSpheres()) {
-                    spheres.add(sphere.getTitle());
-                }
-                previewForList.setSphere(spheres);
-                previewForList.setJpgUrl("https://www.mos.ru" + preview.getUlrImage());
-                previews.add(previewForList);
-            }
-        }
+        GeneratePreview(pagePreview, previews);
 
         return previews;
 
     }
+
 
     @GetMapping("/findByDate")
     public List<Date> findByDate(int page, int size, String date) {
@@ -227,28 +210,28 @@ public class MainController {
     @GetMapping("/onetime/putSphere")
     public PutSphere Sphere() {
 
-        Set<String> title = new HashSet<>();
+        Set<String> titles = new HashSet<>();
         Set<String> auditoriesForResult = new HashSet<>();
         PutSphere putSphere = new PutSphere();
 
         val spheres = sphereRepository.findAll();
         val auditories = auditorieRepository.findAll();
         for (val sphere : spheres) {
-            title.add(sphere.getTitle());
+            titles.add(sphere.getTitle());
         }
-        for (val z : title) {
-            uniqueSphereRepository.save(UniqueSphere.builder().sphere(z).build());
+        for (val title : titles) {
+            uniqueSphereRepository.save(UniqueSphere.builder().sphere(title).build());
         }
         for (val auditorie : auditories) {
             auditoriesForResult.add(auditorie.getTitle());
 
         }
-        for (val a : auditoriesForResult) {
-            uniqueAuditoreRepository.save(UniqueAuditore.builder().auditorie(a).build());
+        for (val auditorieForResult : auditoriesForResult) {
+            uniqueAuditoreRepository.save(UniqueAuditore.builder().auditorie(auditorieForResult).build());
         }
 
         putSphere.setAuditories(auditoriesForResult);
-        putSphere.setTitles(title);
+        putSphere.setTitles(titles);
 
         return putSphere;
     }
@@ -290,8 +273,8 @@ public class MainController {
         if (subscriptionsRepository.existsBySphereAndMemberId(sphere, member.getMemberId())) {
             subscriptionsRepository.deleteBySphere(sphere);
         } else {
-            val subscriptions2 = Subscriptions.builder().sphere(sphere).memberId(member.getMemberId()).build();
-            member.getSubscriptions().add(subscriptions2);
+            val subscriptions = Subscriptions.builder().sphere(sphere).memberId(member.getMemberId()).build();
+            member.getSubscriptions().add(subscriptions);
             memberRepository.save(member);
         }
 
@@ -310,37 +293,27 @@ public class MainController {
     }
 
     @PostMapping("/user/setPost")
-    public void setPost(@RequestHeader("Authorization") String token, @RequestBody Setpost setpost) {
+    public void setPost(@RequestHeader("Authorization") String token, @RequestBody SetPost setpost) {
         String memberName = decoder(token);
         val member = memberRepository.findByMemberName(memberName);
         val postsForResult = new Post();
         postsForResult.setName(member.getName());
-        LinksUrl linksUrl = new LinksUrl();
-        List<Post> posts = new ArrayList<>();
+
+
         IdItemForPost idItemForPost1 = new IdItemForPost();
         List<IdItemForPost> idItemForPosts = new ArrayList<>();
-        List<LinksUrl> linksUrls = new ArrayList<>();
+
 
         for (val itemId : setpost.getItemId()) {
-            for (val jpgUrl : setpost.getJpgUrl()) {
-                linksUrl.setJpgUrl(jpgUrl);
-                linksUrls.add(linksUrl);
-                idItemForPost1.setItemId(itemId);
-                idItemForPosts.add(idItemForPost1);
-
-            }
+            idItemForPost1.setItemId(itemId);
+            idItemForPosts.add(idItemForPost1);
         }
-
-
         postsForResult.setText(setpost.getText());
         postsForResult.setTitle(setpost.getTitle());
         postsForResult.setIdItemForPosts(idItemForPosts);
-        postsForResult.setLinksUrl(linksUrls);
-        posts.add(postsForResult);
-        member.setPosts(posts);
+        postsForResult.setJpgUrl(setpost.getJpgUrl());
+        member.getPosts().add(postsForResult);
         memberRepository.save(member);
-
-
     }
 
     @GetMapping("/user/getUser")
@@ -348,21 +321,106 @@ public class MainController {
         String memberName = decoder(token);
         return memberRepository.findByMemberName(memberName);
     }
-    @PostMapping("/user/addComent")
-    public void  addComent(@RequestHeader("Authorization") String token,@RequestBody String message,@RequestParam Integer postId){
+
+    @PostMapping("/user/addComment")
+    public void addComment(@RequestHeader("Authorization") String token, @RequestParam String message, @RequestParam Integer postId) {
         String memberName = decoder(token);
-        val member =memberRepository.findByMemberName(memberName);
+        val member = memberRepository.findByMemberName(memberName);
         val post = postRepository.findByPostId(postId);
-        Coment coment = new Coment();
-        coment.setMessage(message);
-        coment.setName(member.getName());
-        List<Coment> coments =new ArrayList<>();
-        coments.add(coment);
-        post.setComents(coments);
+        Comment comment = new Comment();
+        comment.setMessage(message);
+        comment.setName(member.getName());
+        List<Comment> comments = new ArrayList<>();
+        comments.add(comment);
+        post.setComments(comments);
         List<Post> posts = new ArrayList<>();
         posts.add(post);
         member.setPosts(posts);
         memberRepository.save(member);
+    }
+
+    @GetMapping("/user/getPost")
+    public GetPost getPost(Integer postId) {
+        val post = postRepository.findByPostId(postId);
+        List<Preview> previews = new ArrayList<>();
+        CommentDto commentDto = new CommentDto();
+        List<CommentDto> comments = new ArrayList<>();
+        GetPost getPost = new GetPost();
+        getPost.setPostId(postId);
+        getPost.setJpgUrl(post.getJpgUrl());
+        for (val comment : post.getComments()) {
+            commentDto.setMessage(comment.getMessage());
+            commentDto.setName(comment.getName());
+            comments.add(commentDto);
+        }
+        for (val itemId : post.getIdItemForPosts()) {
+            val pagePreview = itemRepository.findAllItemById(itemId.getItemId());
+            GeneratePreview(pagePreview, previews);
+        }
+        getPost.setPreviews(previews);
+        getPost.setDate(post.getDate());
+        getPost.setName(post.getName());
+        getPost.setCommentDtos(comments);
+        getPost.setTitle(post.getTitle());
+        getPost.setText(post.getText());
+        return getPost;
+    }
+
+    @GetMapping("/user/getPostByName")
+    public GetPost getPostByName(String name) {
+        val posts = postRepository.findAllByName(name);
+        List<Preview> previews = new ArrayList<>();
+        CommentDto commentDto = new CommentDto();
+        List<CommentDto> comments = new ArrayList<>();
+        GetPost getPost = new GetPost();
+        for (val post : posts) {
+
+            getPost.setPostId(post.getPostId());
+            getPost.setJpgUrl(post.getJpgUrl());
+            for (val comment : post.getComments()) {
+                commentDto.setMessage(comment.getMessage());
+                commentDto.setName(comment.getName());
+                comments.add(commentDto);
+            }
+        }
+        for (val post : posts) {
+            for (val itemId : post.getIdItemForPosts()) {
+                val pagePreview = itemRepository.findAllItemById(itemId.getItemId());
+                GeneratePreview(pagePreview, previews);
+                getPost.setPreviews(previews);
+                getPost.setDate(post.getDate());
+                getPost.setName(post.getName());
+                getPost.setCommentDtos(comments);
+                getPost.setTitle(post.getTitle());
+                getPost.setText(post.getText());
+            }
+        }
+
+        return getPost;
+
+    }
+
+    private void GeneratePreview(List<Item> pagePreview, List<Preview> previews) {
+        for (val preview : pagePreview) {
+            for (val spot : preview.getSpots()) {
+                List<String> spheres = new ArrayList<>();
+                Preview previewForList = new Preview();
+                previewForList.setAddress(spot.getAddress());
+                previewForList.setDate(preview.getDateFrom());
+                previewForList.setLat(spot.getLat());
+                previewForList.setLon(spot.getLon());
+                previewForList.setTitle(preview.getTitle());
+                previewForList.setDate_from_timestamp(preview.getDateFromTimestamp());
+                previewForList.setFree(preview.getFree());
+                previewForList.setIdItem(preview.getId());
+                for (val sphere : preview.getSpheres()) {
+                    spheres.add(sphere.getTitle());
+                }
+                previewForList.setSphere(spheres);
+                previewForList.setJpgUrl("https://www.mos.ru" + preview.getUlrImage());
+                previews.add(previewForList);
+            }
+        }
     }
 
     public String decoder(String token) {

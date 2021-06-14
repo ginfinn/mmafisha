@@ -1,4 +1,4 @@
-package com.realityflex.mmafisha.dto.dtoforsetpost;
+package com.realityflex.mmafisha.dto.dtogetjson;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
@@ -11,9 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Setpost {
-    String title;
-    String text;
-    List<String> jpgUrl;
-    List<Integer> itemId;
+public class Poster {
+    List<MyItem> items;
+    Link _links;
 }

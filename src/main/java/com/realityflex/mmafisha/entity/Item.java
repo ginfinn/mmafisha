@@ -41,7 +41,7 @@ public class Item {
     @JoinColumn(name = "idItem")
 
     List<Spot> spots = new ArrayList<>();
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = false)
+    @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "idItem")
     List<Sphere> spheres = new ArrayList<>();
     @OneToMany(cascade = CascadeType.ALL)
@@ -52,8 +52,6 @@ public class Item {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "idItem")
     List<Auditorie> auditories = new ArrayList<>();
-
-
 
 
 }

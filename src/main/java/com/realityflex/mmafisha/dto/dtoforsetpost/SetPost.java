@@ -1,17 +1,19 @@
-package com.realityflex.mmafisha.dto.putSpheredto;
+package com.realityflex.mmafisha.dto.dtoforsetpost;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Set;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 @NoArgsConstructor
-public class PutSphere {
-    Set<String> titles;
-    Set<String> Auditories;
+public class SetPost {
+    String title;
+    String text;
+    String jpgUrl;
+    List<Integer> itemId;
 }

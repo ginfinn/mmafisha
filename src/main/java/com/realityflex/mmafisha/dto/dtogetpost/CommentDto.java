@@ -1,16 +1,15 @@
-package com.realityflex.mmafisha.dto.dtogetjson;
+package com.realityflex.mmafisha.dto.dtogetpost;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 @NoArgsConstructor
-public class Afisha {
-    List<MyItem> items;
-    Link _links;
+public class CommentDto {
+    String message;
+    String name;
 }

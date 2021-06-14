@@ -9,6 +9,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Big {
+public class Small {
     String src;
 }

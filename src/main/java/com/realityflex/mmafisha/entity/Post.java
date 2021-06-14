@@ -3,7 +3,6 @@ package com.realityflex.mmafisha.entity;
 import lombok.*;
 
 import javax.persistence.*;
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
@@ -17,17 +16,18 @@ public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     Integer postId;
+    @Column(nullable = false, length = 9096)
     String title;
+    @Column(nullable = false, length = 9096)
     String text;
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "postId")
-    List<LinksUrl> linksUrl;
+    @Column(nullable = false, length = 9096)
+    String jpgUrl;
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "postId")
     List<IdItemForPost> idItemForPosts;
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "postId")
-    List<Coment> coments;
+    List<Comment> comments;
     @Builder.Default
     Integer _likes=0;
     String  name;
